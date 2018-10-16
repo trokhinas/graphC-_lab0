@@ -1,6 +1,9 @@
 #include <windows.h>
 #include <windowsx.h>
+
+
 #include "Sight.h"
+#include "Square.h"
 
 LRESULT _stdcall WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);						// прототип оконной процедуры
 int _stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)		// основная процедура
@@ -42,7 +45,7 @@ int _stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 // В основном модуле объявляется только одна глобальная переменная - создаётся объект класса Sight
 // Все дальнейшие действия осуществляются посредством обращения к методам, реализованным в этом классе
-Sight sight(30);//sight размера 30, со стандартными отступами по осям = 100
+Sight figure(30);//sight размера 30, со стандартными отступами по осям = 100
 
 LRESULT _stdcall WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)		// оконная процедура принимает и обрабатывает все сообщения, отправленные окну
 {
@@ -50,9 +53,10 @@ LRESULT _stdcall WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)		// 
 	{
 	case WM_PAINT:						// системное сообщение WM_PAINT генерируется всякий раз, когда требуется отрисовка или перерисовка изображения
 		{
+
 			HDC dc = GetDC(hWnd);		// функция GetDC возвращает контекст устройства, в котором хранится информация о том, в какое окно производится вывод, каковы размеры рабочей области окна hWnd, в какой точке экрана находится начало координат рабочей области и т.п.
-			sight.Clear(dc);
-			sight.Draw(dc);
+			figure.Clear(dc);
+			figure.Draw(dc);
 			ReleaseDC(hWnd, dc);		// функция ReleaseDC сообщает системе, что связанный с окном hWnd контекст dc больше не нужен
 			return DefWindowProc(hWnd, msg, wParam, lParam);
 		}
@@ -60,45 +64,67 @@ LRESULT _stdcall WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)		// 
 		{
 		switch (wParam)
 		{
+		case VK_CONTROL:
+		{
+			figure.setControl(true);
+			break;
+		}
 		case VK_LEFT:
 		{
-			sight.Move(-2, 0);
+			figure.Move(-2, 0);
 			break;
 		}
 		case VK_RIGHT:
 		{
-			sight.Move(2, 0);
+			figure.Move(2, 0);
 			break;
 		}
-		/* ... */
+		case VK_NUMPAD5:
+		{
+			figure.changeColor();
 		}
+		/* ... */
+		}//end of switch
 			InvalidateRect(hWnd, nullptr, false);
 			return 0;
 		}
+	case WM_KEYUP:
+	{
+		switch (wParam)
+		{
+		case VK_CONTROL:
+		{
+			figure.setControl(false);
+			break;
+		}
+
+		}
+		InvalidateRect(hWnd, nullptr, false);
+		return 0;
+	}
 	case WM_RBUTTONDOWN:
 		{
-			sight.MoveTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));//получение координат курсора
+			figure.MoveTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));//получение координат курсора
 			InvalidateRect(hWnd, nullptr, false);
 			return 0;
 		}
 	case WM_LBUTTONDOWN:
 		{
-			if(sight.InnerPoint(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)))//если это нужно
-				sight.StartDragging(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			figure.StartDragging(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), GetDC(hWnd));
 			return 0;
 		}
 	case WM_MOUSEMOVE:
 		{
-			if (sight.IsDragging())
+			if (figure.IsDragging())
 			{
-				sight.Drag(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+				figure.Drag(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 				InvalidateRect(hWnd, nullptr, false);
 			}
 			return 0;
 		}
 	case WM_LBUTTONUP:
 		{
-			sight.StopDragging();
+			figure.StopDragging();
 			return 0;
 		}
 	case WM_SIZE:
@@ -113,10 +139,14 @@ LRESULT _stdcall WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)		// 
 		}
 	case WM_MOUSEWHEEL:
 		{
-			sight.Scale((short)HIWORD(wParam) / 120);
+			POINT P;
+			P.x = GET_X_LPARAM(lParam);
+			P.y = GET_Y_LPARAM(lParam);
+			ScreenToClient(hWnd, &P);
+			if(figure.InnerPoint(P.x, P.y))
+				figure.Scale((short)HIWORD(wParam) / 120);
 			InvalidateRect(hWnd, nullptr, false);
 			return 0;
-
 		}
 	default:
 		{

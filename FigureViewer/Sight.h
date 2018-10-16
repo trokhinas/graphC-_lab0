@@ -3,6 +3,7 @@
 
 #include "Figure.h"
 
+
 class Sight : public Figure
 {
 public:
@@ -21,6 +22,7 @@ public:
 	{
 		return (X-offsetX)*(X-offsetX)+(Y-offsetY)*(Y-offsetY)<=size*size;//все точки что меньше - в круге, равны - НА окружности
 	}
+	
 };
 
 #endif SIGHT_H
